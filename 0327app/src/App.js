@@ -5,6 +5,7 @@ import Numbers, { NumbersWithLimitByCSS, NumbersWithLimitByHTML } from './number
 import LoginMessages from './loginMessages.js';
 import Shopping from './shopping.js';
 import StarRating from './StarRating.js';
+import ProductList from './productList.js';
 
 function App() {
   
@@ -20,6 +21,7 @@ function App() {
       <NumbersWithLimitByHTML/>
       <h2>StarRating</h2>
       <StarRating/>
+      <ProductList/>
     </div>
   );
 }
