@@ -12,7 +12,7 @@ export default function Numbers() {
   );
 }
 
-export function NumbersWithLimitByCSS() {
+export function NumbersWithLimitByHTML() {
   const [number, setNumber] = useState(5);
   return (
     <>
@@ -29,7 +29,7 @@ export function NumbersWithLimitByCSS() {
 };
 
 
-export function NumbersWithLimitByHTML() {
+export function NumbersWithLimitByCSS() {
   const [number, setNumber] = useState(5);
   return (
     <>
