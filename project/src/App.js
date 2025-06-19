@@ -24,6 +24,7 @@ import LoginRegister from './views/LoginRegister';
 import UserManagement from './views/UserManagement';  // 添加用戶管理頁面
 import CustomerFeedback from './views/CustomerFeedback';  // 添加客戶回饋頁面
 import FeedbackManagement from './views/FeedbackManagement';  // 添加回饋管理頁面
+import OrderManagement from './views/OrderManagement';
 import { CartController } from './controllers/CartController';
 import { colorTheme } from './theme/colors';
 
@@ -254,6 +255,9 @@ function App() {
           {currentView === 'feedback-management' && (
             <FeedbackManagement />
           )}
+          {currentView === 'order-management' && (
+            <OrderManagement />
+          )}
         </Content>
 
         <Footer style={{
@@ -321,11 +325,24 @@ function App() {
                   >
                     💬 回饋管理
                   </Button>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ShopOutlined />}
+                    onClick={() => setCurrentView('order-management')}
+                    style={{ 
+                      color: 'white',
+                      border: 'none',
+                      fontSize: '12px',
+                      height: 'auto',
+                      padding: '0 8px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    📦 訂單管理
+                  </Button>
                 </Space>
-              ) : (
-                <Text style={{ color: 'white', fontSize: '12px', fontWeight: '500' }}>
-                </Text>
-              )}
+              ) : null}
             </div>
           </div>
         </Footer>

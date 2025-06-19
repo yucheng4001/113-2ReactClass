@@ -55,6 +55,7 @@ const ShoppingCart = ({
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
 
   console.log('ShoppingCart props:', { 
     cartItems: cartItems?.length, 
@@ -67,28 +68,16 @@ const ShoppingCart = ({
   // 處理結帳按鈕點擊
   const handleCheckoutClick = () => {
     if (!currentUser) {
-      Modal.confirm({
-        title: '需要登入',
-        content: '結帳前請先登入您的帳戶',
-        okText: '前往登入',
-        cancelText: '取消',
-        onOk: () => {
-          onNavigateToLogin();
-        }
-      });
+      setLoginModalVisible(true);
       return;
     }
-
     if (cartItems.length === 0) {
       message.warning('購物車是空的，無法結帳');
       return;
     }
-
     setCheckoutModalVisible(true);
     setCheckoutStep(0);
     setOrderComplete(false);
-    
-    // 自動填入用戶信息
     checkoutForm.setFieldsValue({
       email: currentUser.email,
       paymentMethod: 'credit_card'
@@ -97,6 +86,14 @@ const ShoppingCart = ({
 
   // 處理結帳表單提交
   const handleCheckoutSubmit = async (values) => {
+    console.log('結帳表單 values:', values);
+console.log('shippingAddress:', {
+  name: values.name,
+  phone: values.phone,
+  address: values.address,
+  city: values.city,
+  postalCode: values.postalCode
+});
     setLoading(true);
     try {
       const orderData = {
@@ -125,23 +122,22 @@ const ShoppingCart = ({
 
       // 使用 orderController 創建訂單
       const newOrder = orderController.createOrder(orderData);
-      
+
       setCompletedOrder(newOrder);
       setOrderComplete(true);
       setCheckoutStep(2);
-      
+
       message.success('🎉 訂單建立成功！');
-      
-      // 結帳成功後清空購物車
+
+      // 延遲 1.5 秒後再清空購物車
       setTimeout(() => {
         if (onClearCart) {
           onClearCart();
         } else {
-          // 備用方案：逐一移除商品
           cartItems.forEach(item => onRemoveItem(item.id));
         }
-      }, 1000); // 延遲1秒清空，讓用戶看到成功訊息
-    
+      }, 15000); // 1.5 秒延遲
+
     } catch (error) {
       console.error('訂單創建失敗:', error);
       message.error('訂單建立失敗，請稍後再試');
@@ -187,17 +183,6 @@ const ShoppingCart = ({
   const handleImageError = (e, product) => {
     e.target.src = getSafeImageFallback(product);
   };
-
-  // 修正安全的商品資料處理函數
-  const getSafeProduct = (item) => ({
-    id: item?.id || 0,
-    name: item?.name || '未命名商品',
-    category: item?.category || '未分類',
-    price: item?.price || 0,
-    description: item?.description || '暫無描述',
-    image: item?.image || '',
-    quantity: item?.quantity || 1
-  });
 
   // 修正購物車商品列表的列定義
   const columns = [
@@ -467,146 +452,142 @@ const ShoppingCart = ({
               size="large"
             >
               {/* 步驟 1: 配送信息 */}
-              {checkoutStep === 0 && (
-                <div>
-                  <Title level={4} style={{ color: colorTheme.primary.richBlack }}>
-                    📦 配送信息
-                  </Title>
-                  
+              <div style={{ display: checkoutStep === 0 ? 'block' : 'none' }}>
+                <Title level={4} style={{ color: colorTheme.primary.richBlack }}>
+                  📦 配送信息
+                </Title>
+                
+                <Form.Item
+                  name="name"
+                  label="收件人姓名"
+                  rules={[{ required: true, message: '請輸入收件人姓名' }]}
+                >
+                  <Input placeholder="請輸入收件人姓名" />
+                </Form.Item>
+
+                <Form.Item
+                  name="phone"
+                  label="聯絡電話"
+                  rules={[
+                    { required: true, message: '請輸入聯絡電話' },
+                    { pattern: /^09\d{8}$/, message: '請輸入有效的手機號碼' }
+                  ]}
+                >
+                  <Input placeholder="請輸入聯絡電話" />
+                </Form.Item>
+
+                <Form.Item
+                  name="address"
+                  label="詳細地址"
+                  rules={[{ required: true, message: '請輸入詳細地址' }]}
+                >
+                  <Input.TextArea 
+                    rows={3} 
+                    placeholder="請輸入詳細地址"
+                  />
+                </Form.Item>
+
+                <Space.Compact style={{ width: '100%' }}>
                   <Form.Item
-                    name="name"
-                    label="收件人姓名"
-                    rules={[{ required: true, message: '請輸入收件人姓名' }]}
+                    name="city"
+                    label="城市"
+                    rules={[{ required: true, message: '請選擇城市' }]}
+                    style={{ width: '50%', marginRight: '8px' }}
                   >
-                    <Input placeholder="請輸入收件人姓名" />
+                    <Select placeholder="選擇城市">
+                      <Option value="台北市">台北市</Option>
+                      <Option value="新北市">新北市</Option>
+                      <Option value="桃園市">桃園市</Option>
+                      <Option value="台中市">台中市</Option>
+                      <Option value="台南市">台南市</Option>
+                      <Option value="高雄市">高雄市</Option>
+                    </Select>
                   </Form.Item>
 
                   <Form.Item
-                    name="phone"
-                    label="聯絡電話"
-                    rules={[
-                      { required: true, message: '請輸入聯絡電話' },
-                      { pattern: /^09\d{8}$/, message: '請輸入有效的手機號碼' }
-                    ]}
+                    name="postalCode"
+                    label="郵遞區號"
+                    rules={[{ required: true, message: '請輸入郵遞區號' }]}
+                    style={{ width: '50%' }}
                   >
-                    <Input placeholder="請輸入聯絡電話" />
+                    <Input placeholder="郵遞區號" />
                   </Form.Item>
-
-                  <Form.Item
-                    name="address"
-                    label="詳細地址"
-                    rules={[{ required: true, message: '請輸入詳細地址' }]}
-                  >
-                    <Input.TextArea 
-                      rows={3} 
-                      placeholder="請輸入詳細地址"
-                    />
-                  </Form.Item>
-
-                  <Space.Compact style={{ width: '100%' }}>
-                    <Form.Item
-                      name="city"
-                      label="城市"
-                      rules={[{ required: true, message: '請選擇城市' }]}
-                      style={{ width: '50%', marginRight: '8px' }}
-                    >
-                      <Select placeholder="選擇城市">
-                        <Option value="台北市">台北市</Option>
-                        <Option value="新北市">新北市</Option>
-                        <Option value="桃園市">桃園市</Option>
-                        <Option value="台中市">台中市</Option>
-                        <Option value="台南市">台南市</Option>
-                        <Option value="高雄市">高雄市</Option>
-                      </Select>
-                    </Form.Item>
-
-                    <Form.Item
-                      name="postalCode"
-                      label="郵遞區號"
-                      rules={[{ required: true, message: '請輸入郵遞區號' }]}
-                      style={{ width: '50%' }}
-                    >
-                      <Input placeholder="郵遞區號" />
-                    </Form.Item>
-                  </Space.Compact>
-                </div>
-              )}
+                </Space.Compact>
+              </div>
 
               {/* 步驟 2: 付款方式 */}
-              {checkoutStep === 1 && (
-                <div>
-                  <Title level={4} style={{ color: colorTheme.primary.richBlack }}>
-                    💳 付款方式
-                  </Title>
-                  
-                  <Form.Item
-                    name="paymentMethod"
-                    rules={[{ required: true, message: '請選擇付款方式' }]}
-                  >
-                    <Radio.Group style={{ width: '100%' }}>
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        <Radio value="credit_card" style={{ padding: '12px', border: '1px solid #d9d9d9', borderRadius: '6px', width: '100%' }}>
-                          <Space>
-                            <CreditCardOutlined style={{ color: colorTheme.primary.minimumBlue }} />
-                            <div>
-                              <Text strong>信用卡付款</Text>
-                              <br />
-                              <Text type="secondary">支援 Visa、MasterCard、JCB</Text>
-                            </div>
-                          </Space>
-                        </Radio>
-                        <Radio value="bank_transfer" style={{ padding: '12px', border: '1px solid #d9d9d9', borderRadius: '6px', width: '100%' }}>
-                          <Space>
-                            <span style={{ color: colorTheme.primary.minimumBlue }}>🏦</span>
-                            <div>
-                              <Text strong>銀行轉帳</Text>
-                              <br />
-                              <Text type="secondary">轉帳後請保留收據</Text>
-                            </div>
-                          </Space>
-                        </Radio>
-                        <Radio value="cash_on_delivery" style={{ padding: '12px', border: '1px solid #d9d9d9', borderRadius: '6px', width: '100%' }}>
-                          <Space>
-                            <span style={{ color: colorTheme.primary.minimumBlue }}>💰</span>
-                            <div>
-                              <Text strong>貨到付款</Text>
-                              <br />
-                              <Text type="secondary">商品送達時現金付款</Text>
-                            </div>
-                          </Space>
-                        </Radio>
-                      </Space>
-                    </Radio.Group>
-                  </Form.Item>
+              <div style={{ display: checkoutStep === 1 ? 'block' : 'none' }}>
+                <Title level={4} style={{ color: colorTheme.primary.richBlack }}>
+                  💳 付款方式
+                </Title>
+                
+                <Form.Item
+                  name="paymentMethod"
+                  rules={[{ required: true, message: '請選擇付款方式' }]}
+                >
+                  <Radio.Group style={{ width: '100%' }}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Radio value="credit_card" style={{ padding: '12px', border: '1px solid #d9d9d9', borderRadius: '6px', width: '100%' }}>
+                        <Space>
+                          <CreditCardOutlined style={{ color: colorTheme.primary.minimumBlue }} />
+                          <div>
+                            <Text strong>信用卡付款</Text>
+                            <br />
+                            <Text type="secondary">支援 Visa、MasterCard、JCB</Text>
+                          </div>
+                        </Space>
+                      </Radio>
+                      <Radio value="bank_transfer" style={{ padding: '12px', border: '1px solid #d9d9d9', borderRadius: '6px', width: '100%' }}>
+                        <Space>
+                          <span style={{ color: colorTheme.primary.minimumBlue }}>🏦</span>
+                          <div>
+                            <Text strong>銀行轉帳</Text>
+                            <br />
+                            <Text type="secondary">轉帳後請保留收據</Text>
+                          </div>
+                        </Space>
+                      </Radio>
+                      <Radio value="cash_on_delivery" style={{ padding: '12px', border: '1px solid #d9d9d9', borderRadius: '6px', width: '100%' }}>
+                        <Space>
+                          <span style={{ color: colorTheme.primary.minimumBlue }}>💰</span>
+                          <div>
+                            <Text strong>貨到付款</Text>
+                            <br />
+                            <Text type="secondary">商品送達時現金付款</Text>
+                          </div>
+                        </Space>
+                      </Radio>
+                    </Space>
+                  </Radio.Group>
+                </Form.Item>
 
-                  {/* 訂單摘要 */}
-                  <div style={{ 
-                    background: colorTheme.background.secondary,
-                    padding: '16px',
-                    borderRadius: '8px',
-                    marginTop: '24px'
-                  }}>
-                    <Title level={5} style={{ color: colorTheme.primary.richBlack }}>
-                      📋 訂單摘要
-                    </Title>
-                    <div style={{ marginBottom: '8px' }}>
-                      <Text>商品數量：{cartItems.length} 件</Text>
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <Text>商品金額：NT$ {totalPrice.toLocaleString()}</Text>
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <Text>運費：NT$ 0</Text>
-                    </div>
-                    <Divider style={{ margin: '12px 0' }} />
-                    <div>
-                      <Text strong style={{ fontSize: '16px', color: colorTheme.primary.mandarin }}>
-                        總金額：NT$ {totalPrice.toLocaleString()}
-                      </Text>
-                    </div>
+                {/* 訂單摘要 */}
+                <div style={{ 
+                  background: colorTheme.background.secondary,
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginTop: '24px'
+                }}>
+                  <Title level={5} style={{ color: colorTheme.primary.richBlack }}>
+                    📋 訂單摘要
+                  </Title>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text>商品數量：{cartItems.length} 件</Text>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text>商品金額：NT$ {totalPrice.toLocaleString()}</Text>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text>運費：NT$ 0</Text>
+                  </div>
+                  <Divider style={{ margin: '12px 0' }} />
+                  <div>
+                    <Text strong style={{ fontSize: '16px', color: colorTheme.primary.mandarin }}>
+                      總金額：NT$ {totalPrice.toLocaleString()}
+                    </Text>
                   </div>
                 </div>
-              )}
+              </div>
             </Form>
           ) : (
             /* 步驟 3: 訂單完成 */
@@ -686,6 +667,27 @@ const ShoppingCart = ({
               </Button>
             </div>
           )}
+        </Modal>
+
+        {/* 登入提示彈窗 */}
+        <Modal
+          open={loginModalVisible}
+          title="請先登入"
+          onCancel={() => setLoginModalVisible(false)}
+          footer={[
+            <Button key="login" type="primary" onClick={() => {
+              setLoginModalVisible(false);
+              onNavigateToLogin();
+            }}>
+              前往登入
+            </Button>,
+            <Button key="cancel" onClick={() => setLoginModalVisible(false)}>
+              取消
+            </Button>
+          ]}
+          centered
+        >
+          <Text>您尚未登入，請先登入才能結帳。</Text>
         </Modal>
       </div>
     </div>
